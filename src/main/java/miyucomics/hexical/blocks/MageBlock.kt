@@ -41,23 +41,39 @@ class MageBlock : BlockConjured(
 	}
 
 	override fun onLandedUpon(world: World, state: BlockState, pos: BlockPos, entity: Entity, fallDistance: Float) {
-		val tile = world.getBlockEntity(pos) as MageBlockEntity
-		if (tile.properties["bouncy"]!!)
-			entity.handleFallDamage(fallDistance, 0.0f, DamageSource.FALL)
-		else
+		val t = world.getBlockEntity(pos)
+		if (t == null) {
 			super.onLandedUpon(world, state, pos, entity, fallDistance)
+		} else {
+			val tile = t as MageBlockEntity
+			if (tile.properties["bouncy"]!!)
+				entity.handleFallDamage(fallDistance, 0.0f, DamageSource.FALL)
+			else
+				super.onLandedUpon(world, state, pos, entity, fallDistance)
+		}
+	}
+
+	override fun onSteppedOn(world: World, pos: BlockPos, state: BlockState, entity: Entity) {
+		val tile = world.getBlockEntity(pos) as MageBlockEntity
+		if (!tile.properties["invisible"]!!)
+			tile.walkParticle(entity)
 	}
 
 	override fun onEntityLand(world: BlockView, entity: Entity) {
-		val tile = world.getBlockEntity(entity.blockPos.add(0, -1, 0)) as MageBlockEntity
-		if (tile.properties["bouncy"]!!) {
-			val velocity = entity.velocity
-			if (velocity.y < 0) {
-				entity.setVelocity(velocity.x, -velocity.y, velocity.z)
-				entity.fallDistance = 0f
-			}
-		} else
+		val t = world.getBlockEntity(entity.blockPos.add(0, -1, 0))
+		if (t == null) {
 			super.onEntityLand(world, entity)
+		} else {
+			val tile = t as MageBlockEntity
+			if (tile.properties["bouncy"]!!) {
+				val velocity = entity.velocity
+				if (velocity.y < 0) {
+					entity.setVelocity(velocity.x, -velocity.y, velocity.z)
+					entity.fallDistance = 0f
+				}
+			} else
+				super.onEntityLand(world, entity)
+		}
 	}
 
 	override fun onUse(state: BlockState, world: World, pos: BlockPos, player: PlayerEntity, hand: Hand, hit: BlockHitResult): ActionResult {
@@ -112,6 +128,8 @@ class MageBlock : BlockConjured(
 
 	companion object {
 		fun tick(world: World, position: BlockPos, state: BlockState, blockEntity: MageBlockEntity) {
+			if (!blockEntity.properties["invisible"]!!)
+				blockEntity.particleEffect()
 			if (blockEntity.properties["ephemeral"]!!) {
 				blockEntity.lifespan--
 				if (blockEntity.lifespan <= 0)
